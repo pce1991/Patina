@@ -1,0 +1,37 @@
+TODO:
+     find a better method of making reticules, need to ensure they are centered
+
+Healthbar: maybe the UI needs to be in overlay and just calculate the position of each element? That seems gross, but healthbars arent working otherwise....
+https://forum.unity.com/threads/health-bar-reveal-shader-with-1-drawcall-1-texture.125843/
+
+Shield hit effect? I think the way to do this is have a shield mesh, and only render it for a few frames when hit. Really we want to only render part of it probably. And its likely a mostly transparent mesh witha  texture on it.
+
+
+
+
+Spawners still arent interacting with weapons leaving
+
+
+Create a game: number of players, map, gametype
+
+
+Build levels
+First person controller
+Gun components
+Shields and Health
+UI
+Sounds
+Pickups
+Splitscreen
+Networking
+Gametypes
+Menu
+Bots
+Animations
+Vehicles
+Terrain
+Teleporters
+
+
+We have a separate object which has the pickup collider so that the player can collide with that, but not the rigidbody on the gun; They both have the same tag, but are on different layers (gun and gun-pickup).
+
