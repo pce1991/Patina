@@ -16,6 +16,15 @@ public class Health : MonoBehaviour {
     // @NOTE: this is in points perSecond
     float shieldRechargeRate = 35;
 
+    public bool dead = false;
+    public float timeDied;
+
+    public void InitHealth() {
+        dead = false;
+        health = maxHealth;
+        shield = maxShield;
+    }
+
     // Use this for initialization
     void Start () {
         if (health > maxHealth) { health = maxHealth; }
@@ -33,15 +42,7 @@ public class Health : MonoBehaviour {
     // @GACK: maybe put these in a struct
     public void DamagePlayer(int healthDamage, int shieldDamage, bool headshot, float headshotMultiplier) {
 
-        if (shield <= 0) {
-            if (headshot) {
-                health -= healthDamage * headshotMultiplier;
-            }
-            else {
-                health -= healthDamage;
-            }
-        }
-        else {
+        if (shield > 0) {
             if (headshot) {
                 shield -= shieldDamage * headshotMultiplier;
             }
@@ -50,7 +51,25 @@ public class Health : MonoBehaviour {
             }
         }
 
+        if (shield <= 0) {
+            int overflowShieldDamage = (int)Mathf.Abs(shield);
+
+            // @GAME @TODO: this may need some balancing!!!!!
+            healthDamage = overflowShieldDamage;
+            
+            if (headshot) {
+                health -= healthDamage * headshotMultiplier;
+            }
+            else {
+                health -= healthDamage;
+            }
+        }
+        
         timeSinceDamaged = 0.0f;
+
+        if (shield < 0) {
+            shield = 0;
+        }
     }
 
     void Update() {
@@ -69,13 +88,13 @@ public class Health : MonoBehaviour {
     void LateUpdate () {
         SpartanController player = this.GetComponent<SpartanController>();
         
-        if (health <= 0 && !player.dead) {
+        if (health <= 0 && !dead) {
+            dead = true;
+            timeDied = Time.time;
 
-            player.dead = true;
-            player.timeDied = Time.time;
+            player.KillSpartan();
+            
             Debug.Log("player " + player.localPlayerNum);
-
-            player.gameObject.active = false;
             
             // @TODO: kill player. Its weird tho, do we destroy the instance of that player, or just
             // change some stuff about it? Drop equipment, reset health, change position?

@@ -46,8 +46,15 @@ public class SpartanController : MonoBehaviour {
 
     public ControlPreferences preferences;
 
-    float speed = 10;
-    float airSpeed = 5;
+    float speed = 550;
+    float vertAirSpeed = 300;
+    float horzAirSpeed = 200;
+
+    float vertBoostSpeed = 600;
+    float horzBoostSpeed = 600;
+    
+    float jumpForce = 60;
+    float boostForce = 50;
 
     public GameObject weaponHand;
     public GameObject holster;
@@ -55,7 +62,7 @@ public class SpartanController : MonoBehaviour {
 
     public GameObject standingHitboxes;
     public GameObject crouchingHitboxes;
-
+    public GameObject model;
     
     
     public GameObject camera;
@@ -65,8 +72,7 @@ public class SpartanController : MonoBehaviour {
     // @NOTE: used for finding which input to use
     public int localPlayerNum;
 
-    float gravity = 10;
-
+    float gravity = 15;
 
     float groundDistanceThreshold = 1.5f;
 
@@ -78,12 +84,16 @@ public class SpartanController : MonoBehaviour {
         Falling,
     };
 
+    float heightStartedFall;
+
     float timeSinceJump;
-    float jumpDuration = 0.5f;
+    float jumpDuration = 0.25f;
+
+    Vector3 velocity = new Vector3(0, 0, 0);
 
     bool canBoost;
     float timeSinceBoost;
-    float boostDuration = 0.25f;
+    float boostDuration = 0.15f;
 
     private CharacterController characterController;
 
@@ -97,8 +107,57 @@ public class SpartanController : MonoBehaviour {
     public GameObject canvas;
 
     
-    public bool dead = false;
-    public float timeDied;
+
+    public void SpawnSpartan(Vector3 position, Quaternion rotation, GameObject weapon0, GameObject weapon1) {
+
+        transform.position = position;
+        transform.rotation = rotation;
+        
+        Health health = GetComponent<Health>();
+        health.InitHealth();
+
+        weapons[0]= weapon0;
+        weapons[1]= weapon1;
+
+        if (weapons[0] != null) {
+            SetActiveGun(weapons[0]);
+            SetInactiveGun(weapons[1]);
+            activeWeaponIndex = 0;
+        }
+        else if (weapons[1] != null) {
+            SetActiveGun(weapons[1]);
+            activeWeaponIndex = 1;
+        }
+        else {
+            activeWeaponIndex = -1;
+        }
+
+        model.active = true;
+        standingHitboxes.active = true;
+        crouchingHitboxes.active = true;
+    }
+
+    public void KillSpartan() {
+
+        // @TODO: here's a tricky thing: we want to keep the body around a bit and do a death animation
+        // Deactivate hitboxes and model
+        model.active = false;
+        standingHitboxes.active = false;
+        crouchingHitboxes.active = false;
+        
+
+        for (int i = 0; i < 2; i++) {
+            if (weapons[i] == null) { continue; }
+
+            weapons[i].transform.parent = null;
+
+            Rigidbody oldBody = weapons[i].GetComponent<Rigidbody>();
+            oldBody.isKinematic = false;
+
+            Gun oldGun = weapons[i].GetComponent<Gun>();
+            oldGun.owned = false;
+        }
+    }
     
     void Start () {
         characterController = GetComponent<CharacterController>();
@@ -132,29 +191,27 @@ public class SpartanController : MonoBehaviour {
 
         gunRay.origin = cameraTransform.position;
         gunRay.direction = cameraTransform.rotation * Vector3.forward;
-
-        // @GACK: do layers!!!
-        gunRay.origin = gunRay.origin + (gunRay.direction * 2);
     }
 
     // http://gizma.com/easing/
     Vector3 CalculateJumpForce(float time) {
-        float scale = gravity;
         float d = jumpDuration;
-        float b = 8;
-        float c = 1;
+        float b = gravity;
+        float c = jumpForce;
         float t = time / d;
-        scale += -c * t * (t - 2) + b;
+
+        // circ ease out 
+        float scale = c * Mathf.Sqrt(1 - t * t) + b;
+        Debug.Log(scale);
         return Vector3.up * scale;
     }
 
     Vector3 CalculateBoostForce(float time) {
-        float scale = gravity;
         float d = boostDuration;
-        float b = 16;
-        float c = 1;
+        float b = gravity;
+        float c = boostForce;
         float t = time / d;
-        scale += -c * t * (t - 2) + b;
+        float scale = c * Mathf.Sqrt(1 - t * t) + gravity;
         return Vector3.up * scale;
     }
 
@@ -221,9 +278,48 @@ public class SpartanController : MonoBehaviour {
 
         pickupTextPrompt.active = false;
     }
+
+    void SetActiveGun(GameObject weapon) {
+        weapon.transform.SetParent(weaponHand.transform);
+
+        Rigidbody body = weapon.GetComponent<Rigidbody>();
+        body.isKinematic = true;
+                
+        Gun gun = weapon.GetComponent<Gun>();                
+        gun.SetHeldPosition();
+        gun.owned = true;
+
+        Image image = reticule.GetComponent<Image>();
+        image.sprite = gun.reticule;
+    }
+
+    void SetInactiveGun(GameObject weapon) {
+        Gun gun = weapon.GetComponent<Gun>();                
+
+        if (gun.type == GunType.Magnum || gun.type == GunType.PlasmaPistol) {
+            weapon.transform.SetParent(holster.transform);
+        }
+        else {
+            weapon.transform.SetParent(sling.transform);
+        }
+
+        gun.SetHolsteredPosition();
+    }
+
+    public GameObject GetActiveWeapon() {
+        if (activeWeaponIndex >= 0) {
+            return weapons[activeWeaponIndex];
+        }
+        else {
+            return null;
+        }
+    }
+        
 		
     void Update () {
         UpdateLook();
+
+        MovementState prevMovementState = movementState;
 
         bool switchWeapon = false;
         int prevActiveWeaponIndex = activeWeaponIndex;
@@ -236,18 +332,8 @@ public class SpartanController : MonoBehaviour {
                 // @NOTE: when we pickup a weapon we havent left the trigger
                 // so we want to manually deactivate the prompt message here
                 pickupTextPrompt.active = false;
-                
-                candidateWeapon.transform.SetParent(weaponHand.transform);
 
-                Rigidbody body = candidateWeapon.GetComponent<Rigidbody>();
-                body.isKinematic = true;
                 
-                Gun gun = candidateWeapon.GetComponent<Gun>();                
-                gun.SetHeldPosition();
-                gun.owned = true;
-
-                Image image = reticule.GetComponent<Image>();
-                image.sprite = gun.reticule;
 
                 if (weapons[0] == null) {
                     weapons[0] = candidateWeapon;
@@ -267,6 +353,8 @@ public class SpartanController : MonoBehaviour {
                     
                     weapons[activeWeaponIndex] = candidateWeapon;
                 }
+
+                SetActiveGun(candidateWeapon);
             }
         }
 
@@ -290,16 +378,8 @@ public class SpartanController : MonoBehaviour {
 
         if (prevActiveWeaponIndex >= 0 && activeWeaponIndex != prevActiveWeaponIndex) {
             GameObject prevWeapon = weapons[prevActiveWeaponIndex];
-            Gun gun = prevWeapon.GetComponent<Gun>();                
 
-            if (gun.type == GunType.Magnum) {
-                prevWeapon.transform.SetParent(holster.transform);
-            }
-            else {
-                prevWeapon.transform.SetParent(sling.transform);
-            }
-
-            gun.SetHolsteredPosition();
+            SetInactiveGun(prevWeapon);
         }
 
         if (activeWeaponIndex >= 0) {
@@ -316,18 +396,23 @@ public class SpartanController : MonoBehaviour {
                 bool wasTriggerHeld = gun.triggerHeld;
                 
                 if (gun.automatic) {
-                    gun.Fire(gunRay);
+                    gun.Fire(this.gameObject, gunRay);
                     gun.triggerHeld = true;
                 }
                 else {
                     if (!wasTriggerHeld) {
-                        gun.Fire(gunRay);
+                        gun.Fire(this.gameObject, gunRay);
                         gun.triggerHeld = true;
                     }
                 }
             }
             else {
                 gun.triggerHeld = false;
+            }
+
+            // @TODO: only if we havent picked up a weapon!
+            if (ButtonPressed("Reload", localPlayerNum)) {
+                gun.Reload();
             }
         }
 
@@ -347,7 +432,20 @@ public class SpartanController : MonoBehaviour {
         Debug.DrawRay(rayOrig, rayDir, Color.red);
 
         if (characterController.isGrounded) {
+            if (movementState == MovementState.Falling) {
+                Health health = GetComponent<Health>();
+                
+                float fallingSpeed = velocity.y;
+
+                Debug.Log(fallingSpeed);
+
+                if (fallingSpeed < -50) {
+                    health.DamagePlayer(100, 100, false, 0.0f);
+                }
+            }
+            
             movementState = MovementState.OnGround;
+            velocity = Vector3.zero;
         }
 
         if (movementState == MovementState.Crouching) {
@@ -376,30 +474,36 @@ public class SpartanController : MonoBehaviour {
             // Debug.DrawLine(this.transform.position, this.transform.position + groundX, Color.red);
             // Debug.DrawLine(this.transform.position, this.transform.position + groundZ, Color.red);
 
-            //Vector3 force = (speed * direction.x) * groundX + (speed * direction.y) * groundZ;
-
             force = new Vector3(speed * direction.x, 0, speed * direction.y);
             force = this.transform.rotation * force;
-            Vector3.ClampMagnitude(force, 1.0f);
 
             movementState = MovementState.OnGround;
+        }
+
+        
+        if (!characterController.isGrounded &&
+            movementState != MovementState.Jump && movementState != MovementState.Boost) {
+            movementState = MovementState.Falling;
+            heightStartedFall = transform.position.y;
         }
 
         if (movementState == MovementState.OnGround) {
             bool jumped = ButtonPressed("Jump", localPlayerNum);
 
             if (jumped) {
+                force = Vector3.zero;
                 timeSinceJump = 0.0f;
 
                 movementState = MovementState.Jump;
+
+                velocity = Vector3.zero;
             }
         }
 
         // @TODO: make sure we havent jumped this same frame, because our button press is still true
         if (canBoost && (movementState == MovementState.Jump ||
                          movementState == MovementState.Falling)) {
-            
-            if (ButtonPressed("Jump", localPlayerNum) && timeSinceJump > 0.0f) {
+            if (ButtonPressed("Jump", localPlayerNum) && prevMovementState != MovementState.OnGround) {
                 canBoost = false;
                 movementState = MovementState.Boost;
                 timeSinceBoost = 0;
@@ -408,48 +512,58 @@ public class SpartanController : MonoBehaviour {
 
         if (movementState == MovementState.Jump) {
             timeSinceJump += Time.deltaTime;
-            
-            force = new Vector3(airSpeed * direction.x, 0, airSpeed * direction.y);
+
+            velocity.x = 0;
+            velocity.z = 0;
+            force = new Vector3(horzAirSpeed * direction.x, 0, vertAirSpeed * direction.y);
             force = this.transform.rotation * force;
-            Vector3.ClampMagnitude(force, 1.0f);
-            characterController.Move(force * Time.deltaTime);
 
             force = force + CalculateJumpForce(timeSinceJump);
 
             // @TODO: this is too small a hop
             if (timeSinceJump >= jumpDuration || !ButtonHeld("Jump", localPlayerNum)) {
                 movementState = MovementState.Falling;
+                heightStartedFall = transform.position.y;
             }
         }
 
         if (movementState == MovementState.Boost) {
             timeSinceBoost += Time.deltaTime;
 
+            velocity.x = 0;
+            velocity.z = 0;
+            
             // @TODO: look at the direction when you first boost, apply a large force along that direction
             // for some duration, then return to normal air control
             
-            force = new Vector3(airSpeed * direction.x, 0, airSpeed * direction.y);
+            force = new Vector3(horzBoostSpeed * direction.x, 0, vertBoostSpeed * direction.y);
             force = this.transform.rotation * force;
-            Vector3.ClampMagnitude(force, 1.0f);
-            characterController.Move(force * Time.deltaTime);
 
             force = force + (CalculateBoostForce(timeSinceBoost));
 
             if (timeSinceBoost >= boostDuration) {
                 movementState = MovementState.Falling;
+                heightStartedFall = transform.position.y;
             }            
         }
 
         if (movementState == MovementState.Falling) {
-            force = new Vector3(airSpeed * direction.x, 0, airSpeed * direction.y);
+            velocity.x = 0;
+            velocity.z = 0;
+            
+            force = new Vector3(horzAirSpeed * direction.x, 0, vertAirSpeed * direction.y);
             force = this.transform.rotation * force;
-            Vector3.ClampMagnitude(force, 1.0f);
         }
 
         
-        Vector3 gravityForce = (-Vector3.up * gravity);
-        force = force + gravityForce;
+        //if (!characterController.isGrounded) {
+            Vector3 gravityForce = (-Vector3.up * gravity);
+            force = force + gravityForce;
+        //}
 
-        characterController.Move(force * Time.deltaTime);
+        velocity += force * Time.deltaTime;
+        //Debug.Log(velocity);
+
+        characterController.Move(velocity * Time.deltaTime);
     }
 }

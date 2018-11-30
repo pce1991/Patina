@@ -86,12 +86,14 @@ public class GameStats : MonoBehaviour {
         foreach (GameObject player in players) {
             SpartanController controller = player.GetComponent<SpartanController>();
 
-            if (controller.dead) {
-                float timeSinceDied = Time.time - controller.timeDied;
-                Debug.Log(timeSinceDied);
+            Health health = player.GetComponent<Health>();
 
+            if (health.dead) {
+                float timeSinceDied = Time.time - health.timeDied;
+
+                // @TODO: find a spawn point!!!!
                 if (timeSinceDied >= respawnRate) {
-                    player.active = true;
+                    controller.SpawnSpartan(new Vector3(0, 0, 0), Quaternion.identity, null, null);
                 }
             }
         }

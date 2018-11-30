@@ -6,18 +6,27 @@ public class WeaponSpawn : MonoBehaviour {
 
     public GameObject weaponPrefab;
     // @TODO: do some initialization stats on that prefab like ammo count etc
+    public int initialAmmo = -1;
+    public int initialAmmoInClip = -1;
 
     GameObject lastWeaponSpawned;
 
     public float spawnRate;
     float timeSinceSpawn = 0;
     bool empty;
-    // Use this for initialization
-    void Start () {
+
+    void SpawnWeapon() {
         lastWeaponSpawned = Instantiate(weaponPrefab, this.transform.position + new Vector3(0, 1, 0), Quaternion.identity);
 
         Gun gun = lastWeaponSpawned.GetComponent<Gun>();
         lastWeaponSpawned.transform.rotation = Quaternion.Euler(gun.restRotation);
+        gun.SetAmmoCount(initialAmmo);
+        gun.SetAmmoInClip(initialAmmoInClip);
+    }
+    
+    // Use this for initialization
+    void Start () {
+        SpawnWeapon();
         
         empty = false;
         timeSinceSpawn = 0;
@@ -27,8 +36,12 @@ public class WeaponSpawn : MonoBehaviour {
     // (maybe we should just use masks?)
     void OnTriggerExit(Collider collider) {
         Debug.Log("left");
+
+        // @WARNING: we assume the collider is always parented to the gun directly
+        Debug.Log(collider.transform.parent.gameObject.name);
+        Debug.Log("last " + lastWeaponSpawned.name);
         
-        if (collider.gameObject == lastWeaponSpawned) {
+        if (collider.transform.parent.gameObject == lastWeaponSpawned) {
             empty = true;
         }
     }
@@ -40,6 +53,8 @@ public class WeaponSpawn : MonoBehaviour {
             timeSinceSpawn += Time.deltaTime;
 
             if (timeSinceSpawn > spawnRate) {
+                SpawnWeapon();
+                
                 timeSinceSpawn = 0;
                 empty = false;
             }
