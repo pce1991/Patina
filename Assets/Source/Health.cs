@@ -55,7 +55,10 @@ public class Health : MonoBehaviour {
             int overflowShieldDamage = (int)Mathf.Abs(shield);
 
             // @GAME @TODO: this may need some balancing!!!!!
-            healthDamage = overflowShieldDamage;
+            // if (overflowShieldDamage > 0) {
+            //     Debug.Log(overflowShieldDamage);
+            //     healthDamage = overflowShieldDamage;
+            // }
             
             if (headshot) {
                 health -= healthDamage * headshotMultiplier;

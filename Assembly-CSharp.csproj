@@ -65,6 +65,7 @@
     <Compile Include="Assets\Source\GameStats.cs" />
     <Compile Include="Assets\Source\Gun.cs" />
     <Compile Include="Assets\Source\Health.cs" />
+    <Compile Include="Assets\Source\JumpPad.cs" />
     <Compile Include="Assets\Source\Reticule.cs" />
     <Compile Include="Assets\Source\SpartanController.cs" />
     <Compile Include="Assets\Source\SpartanUI.cs" />

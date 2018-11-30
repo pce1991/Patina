@@ -59,5 +59,10 @@ public class WeaponSpawn : MonoBehaviour {
                 empty = false;
             }
         }
+
+        // @MAYBE: do an OnDestroy call for a gun, but it needs to know that its owned by a spawner in that case
+        if (lastWeaponSpawned == null) {
+            empty = true;
+        }
     }
 }

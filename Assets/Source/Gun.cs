@@ -34,7 +34,8 @@ public class Gun : MonoBehaviour {
     public Sprite reticule;
     public GameObject muzzleFlash;
     public float muzzleFlashDuration;
-    
+
+    // @NOTE: maxAmmo is really the max ammo you can have in reserve
     public int maxAmmo;
     public int ammoCount;
     
@@ -160,14 +161,23 @@ public class Gun : MonoBehaviour {
     }
 
     public void SetAmmoCount(int ammo) {
-        // @TODO: do something different if its plasma
         if (ammo >= 0) {
-            if (ammo > maxAmmo) { ammoCount = maxAmmo; }
+            // @GAME: maybe this is weird and we should just clip maxAmmo?
+            int spaceInClip = clipSize - ammoInClip;
+            
+            if (ammo > maxAmmo + spaceInClip) { ammoCount = maxAmmo + spaceInClip; }
             else { ammoCount = ammo; }
         }
         else {
             ammoCount = maxAmmo;
         }
+    }
+
+    public int AddAmmo(int ammo) {
+        int initialAmmoCount = ammoCount;
+        SetAmmoCount(ammoCount + ammo);
+
+        return ammoCount - initialAmmoCount;
     }
 
     public void SetAmmoInClip(int ammo) {
@@ -180,56 +190,73 @@ public class Gun : MonoBehaviour {
         }
     }
 
+    void DestroyGun() {
+        foreach (Transform child in this.transform) {
+            Destroy(child.gameObject);
+        }
+
+        Destroy(this.gameObject);
+    }
+
     public void Update() {
-        if (triggerHeld) {
-            timeSinceRelease += Time.deltaTime;
-        }
-        else {
-            timeSinceRelease = 0.0f;
-        }
-        
-        if (ammoType == AmmoType.Plasma) {
-
-            // @TODO: this really needs to be more of a cooldown because plasma pistol never overheats right now
-            if (timeSinceRelease >= timeTilOverheat && !overheating) {
-                overheating = true;
-                overheatStartTime = Time.time;
+        if (owned) {
+            if (triggerHeld) {
+                timeSinceRelease += Time.deltaTime;
             }
+            else {
+                timeSinceRelease = 0.0f;
+            }
+        
+            if (ammoType == AmmoType.Plasma) {
 
-            if (overheating) {
-                float timeSinceOverheat = Time.time - overheatStartTime;
+                // @TODO: this really needs to be more of a cooldown because plasma pistol never overheats right now
+                if (timeSinceRelease >= timeTilOverheat && !overheating) {
+                    overheating = true;
+                    overheatStartTime = Time.time;
+                }
 
-                if (timeSinceOverheat >= overheatDuration) {
-                    overheating = false;
-                    // @TODO: what if you hold the trigger during the overheat?
+                if (overheating) {
+                    float timeSinceOverheat = Time.time - overheatStartTime;
+
+                    if (timeSinceOverheat >= overheatDuration) {
+                        overheating = false;
+                        // @TODO: what if you hold the trigger during the overheat?
+                    }
                 }
             }
-        }
         
-        if (reloading) {
-            float timeSinceReload = Time.time - timeReloaded;
+            if (reloading) {
+                float timeSinceReload = Time.time - timeReloaded;
 
-            if (timeSinceReload > reloadDuration) {
-                int bulletsToReplenish = clipSize - ammoInClip;
+                if (timeSinceReload > reloadDuration) {
+                    int bulletsToReplenish = clipSize - ammoInClip;
                 
-                if (bulletsToReplenish > ammoCount) {
-                    ammoInClip = ammoCount;
-                    ammoCount = 0;
-                }
-                else {
-                    ammoCount -= bulletsToReplenish;
-                    ammoInClip = clipSize;
-                }
+                    if (bulletsToReplenish > ammoCount) {
+                        ammoInClip = ammoCount;
+                        ammoCount = 0;
+                    }
+                    else {
+                        ammoCount -= bulletsToReplenish;
+                        ammoInClip = clipSize;
+                    }
 
-                reloading = false;
+                    reloading = false;
+                }
+            }
+            else {
+                timeSinceFired = Time.time - timeFired;
+                if (timeSinceFired >= muzzleFlashDuration) {
+                    muzzleFlash.active = false;
+                }
+            
             }
         }
         else {
-            timeSinceFired = Time.time - timeFired;
-            if (timeSinceFired >= muzzleFlashDuration) {
-                muzzleFlash.active = false;
-            }
+            muzzleFlash.active = false;
             
+            if (ammoCount + ammoInClip == 0) {
+                DestroyGun();
+            }
         }
     }
 }

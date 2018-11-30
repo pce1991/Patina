@@ -69,14 +69,17 @@ public class SpartanUI : MonoBehaviour {
 
             float width = screenDim.x * 0.1f; float height = screenDim.y * 0.1f;
             ammoRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
-            ammoRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, height);
+            ammoRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
         }
 
-        // {
-        //     RectTransform reticuleRect = reticule.GetComponent<RectTransform>();
+        {
+            RectTransform reticuleRect = reticule.GetComponent<RectTransform>();
+            
+            //reticuleRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, reticuleRect.rect.width * Mathf.Min(cam.rect.width, cam.rect.height));
+            //reticuleRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, reticuleRect.rect.height);
 
-        //     reticuleRect.localScale = new Vector3(cam.rect.width, cam.rect.height, 1);
-        // }
+            //reticuleRect.localScale = new Vector3(cam.rect.width, cam.rect.height, 1);
+        }
     }
 
     // @TODO: do health nubs instead of a bar because its a bit clearer

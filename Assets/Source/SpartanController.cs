@@ -47,14 +47,14 @@ public class SpartanController : MonoBehaviour {
     public ControlPreferences preferences;
 
     float speed = 550;
-    float vertAirSpeed = 300;
-    float horzAirSpeed = 200;
+    float vertAirSpeed = 450;
+    float horzAirSpeed = 350;
 
-    float vertBoostSpeed = 600;
-    float horzBoostSpeed = 600;
+    float vertBoostSpeed = 650;
+    float horzBoostSpeed = 650;
     
-    float jumpForce = 60;
-    float boostForce = 50;
+    float jumpForce = 100;
+    float boostForce = 100;
 
     public GameObject weaponHand;
     public GameObject holster;
@@ -72,7 +72,7 @@ public class SpartanController : MonoBehaviour {
     // @NOTE: used for finding which input to use
     public int localPlayerNum;
 
-    float gravity = 15;
+    float gravity = 20;
 
     float groundDistanceThreshold = 1.5f;
 
@@ -87,10 +87,11 @@ public class SpartanController : MonoBehaviour {
     float heightStartedFall;
 
     float timeSinceJump;
-    float jumpDuration = 0.25f;
+    float jumpDuration = 0.15f;
 
     Vector3 velocity = new Vector3(0, 0, 0);
 
+    public GameObject boostParticles;
     bool canBoost;
     float timeSinceBoost;
     float boostDuration = 0.15f;
@@ -202,7 +203,6 @@ public class SpartanController : MonoBehaviour {
 
         // circ ease out 
         float scale = c * Mathf.Sqrt(1 - t * t) + b;
-        Debug.Log(scale);
         return Vector3.up * scale;
     }
 
@@ -239,13 +239,19 @@ public class SpartanController : MonoBehaviour {
 
                 Gun activeGun = weapons[i].GetComponent<Gun>();
 
-                Debug.Log(activeGun.type);
-
-                canPickup &= activeGun.type != gun.type;
-            }
-            
-            if (!canPickup) {
-                // @TODO: replenish ammo!
+                if (activeGun.type == gun.type) {
+                    if (activeGun.ammoType == AmmoType.Plasma && gun.ammoCount > activeGun.ammoCount) {
+                        canPickup = true;
+                    }
+                    else {
+                        canPickup = false;
+                        int takenAmmo = activeGun.AddAmmo(gun.ammoCount + gun.ammoInClip);
+                        gun.ammoCount -= takenAmmo;
+                    }
+                }
+                else {
+                    canPickup &= true;
+                }
             }
         }
 
@@ -260,7 +266,8 @@ public class SpartanController : MonoBehaviour {
             Text text = pickupTextPrompt.GetComponent<Text>();
 
             String message = "Press X to Pickup ";
-        
+
+            // @PERF: bake these messages out!
             text.text = message + gun.type.ToString();
         }
         else {
@@ -437,7 +444,7 @@ public class SpartanController : MonoBehaviour {
                 
                 float fallingSpeed = velocity.y;
 
-                Debug.Log(fallingSpeed);
+                //Debug.Log(fallingSpeed);
 
                 if (fallingSpeed < -50) {
                     health.DamagePlayer(100, 100, false, 0.0f);
@@ -507,6 +514,9 @@ public class SpartanController : MonoBehaviour {
                 canBoost = false;
                 movementState = MovementState.Boost;
                 timeSinceBoost = 0;
+
+                ParticleSystem particles = boostParticles.GetComponent<ParticleSystem>();
+                particles.Play();
             }
         }
 

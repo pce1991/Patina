@@ -4,15 +4,10 @@ TODO:
 Shield hit effect? I think the way to do this is have a shield mesh, and only render it for a few frames when hit. Really we want to only render part of it probably. And its likely a mostly transparent mesh witha  texture on it.
 
 
-Better jump!
-
-
-Spawners still arent interacting with weapons leaving
-
 
 Create a game: number of players, map, gametype
 Scoring UI
-Weapon ammo counter
+Walkup over weapon to pickup ammo (if a weapon has no ammo, destroy it)
 
 
 Build levels
@@ -35,7 +30,7 @@ Recoil
 Particle effects
 Projectiles
 Gun ammo and reloading
-
+Weapon modifiers!
 
 
 We have a separate object which has the pickup collider so that the player can collide with that, but not the rigidbody on the gun; They both have the same tag, but are on different layers (gun and gun-pickup).

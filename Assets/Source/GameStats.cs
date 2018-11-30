@@ -17,6 +17,27 @@ public class GameStats : MonoBehaviour {
     public int localPlayerCount;
     GameObject[] players;
 
+    Transform FindSpawnPoint() {
+        GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("Spawn");
+
+        float maxDistance = -Mathf.Infinity;
+
+        GameObject bestSpawn = null;
+        float dist;
+        foreach(GameObject spawn in spawnPoints) {
+            foreach(GameObject player in players) {
+                dist = Vector3.Distance(spawn.transform.position, player.transform.position);
+
+                if (dist > maxDistance) {
+                    maxDistance = dist;
+                    bestSpawn = spawn;
+                }
+            }
+        }
+
+        return bestSpawn.transform;
+    }
+
     // Use this for initialization
     void Start () {
         // @TODO: really what we want to do is create the players rather than find them in the scene!!!
@@ -91,9 +112,10 @@ public class GameStats : MonoBehaviour {
             if (health.dead) {
                 float timeSinceDied = Time.time - health.timeDied;
 
+                Transform bestSpawn = FindSpawnPoint();
                 // @TODO: find a spawn point!!!!
                 if (timeSinceDied >= respawnRate) {
-                    controller.SpawnSpartan(new Vector3(0, 0, 0), Quaternion.identity, null, null);
+                    controller.SpawnSpartan(bestSpawn.position, bestSpawn.rotation, null, null);
                 }
             }
         }
