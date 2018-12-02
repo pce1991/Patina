@@ -63,7 +63,7 @@ public class SpartanController : MonoBehaviour {
     public GameObject standingHitboxes;
     public GameObject crouchingHitboxes;
     public GameObject model;
-    
+    public GameObject shieldModel;
     
     public GameObject camera;
     Ray gunRay;
@@ -83,8 +83,6 @@ public class SpartanController : MonoBehaviour {
         Boost,
         Falling,
     };
-
-    float heightStartedFall;
 
     float timeSinceJump;
     float jumpDuration = 0.15f;
@@ -107,9 +105,12 @@ public class SpartanController : MonoBehaviour {
     public GameObject pickupTextPrompt;
     public GameObject canvas;
 
+    float timeFired;
+    float maxRecoil;
     
 
     public void SpawnSpartan(Vector3 position, Quaternion rotation, GameObject weapon0, GameObject weapon1) {
+        camera.active = true;
 
         transform.position = position;
         transform.rotation = rotation;
@@ -122,7 +123,10 @@ public class SpartanController : MonoBehaviour {
 
         if (weapons[0] != null) {
             SetActiveGun(weapons[0]);
-            SetInactiveGun(weapons[1]);
+
+            if (weapons[1] != null) {
+                SetInactiveGun(weapons[1]);
+            }
             activeWeaponIndex = 0;
         }
         else if (weapons[1] != null) {
@@ -194,6 +198,23 @@ public class SpartanController : MonoBehaviour {
         gunRay.direction = cameraTransform.rotation * Vector3.forward;
     }
 
+    void RecoilLook(float recoil) {
+        Transform cameraTransform = camera.GetComponent<Transform>();
+
+        xAxisClamp += recoil;
+
+        if (xAxisClamp > 90) {
+            xAxisClamp = 90;
+            recoil = 0;
+        }
+        else if (xAxisClamp < -90) {
+            xAxisClamp = -90;
+            recoil = 0;
+        }
+        
+        cameraTransform.Rotate(Vector3.left * recoil);
+    }
+
     // http://gizma.com/easing/
     Vector3 CalculateJumpForce(float time) {
         float d = jumpDuration;
@@ -224,7 +245,11 @@ public class SpartanController : MonoBehaviour {
     void OnTriggerEnter(Collider collider) {
         if (collider.gameObject.tag == "Gun") {
             canPickupWeapon = true;
-            candidateWeapon = collider.gameObject.transform.root.gameObject;
+            candidateWeapon = collider.gameObject.transform.parent.gameObject;
+        }
+        else {
+            // @BUG:
+            return;
         }
 
         Gun gun = candidateWeapon.GetComponent<Gun>();
@@ -239,8 +264,14 @@ public class SpartanController : MonoBehaviour {
 
                 Gun activeGun = weapons[i].GetComponent<Gun>();
 
+                Debug.Log(activeGun.type);                    
+
                 if (activeGun.type == gun.type) {
-                    if (activeGun.ammoType == AmmoType.Plasma && gun.ammoCount > activeGun.ammoCount) {
+                    // @BUG: wtf why wont this work?
+                    Debug.Log(activeGun.ammoType);
+                    // @GACK: Its really gross we cant just check ammou count
+                    if (activeGun.ammoType == AmmoType.Plasma && gun.ammoInClip > activeGun.ammoInClip) {
+                        Debug.Log("CAN PICKUP DONT TAKE THE AMMO");
                         canPickup = true;
                     }
                     else {
@@ -278,6 +309,10 @@ public class SpartanController : MonoBehaviour {
 
     // @BUG: what if we never actually leave the trigger?
     void OnTriggerExit(Collider collider) {
+        if (collider.gameObject.tag != "Gun") {
+            return;
+        }
+        
         if (collider.gameObject.tag == "Gun") {
             candidateWeapon = null;
             canPickupWeapon = false;
@@ -301,7 +336,11 @@ public class SpartanController : MonoBehaviour {
     }
 
     void SetInactiveGun(GameObject weapon) {
-        Gun gun = weapon.GetComponent<Gun>();                
+        Gun gun = weapon.GetComponent<Gun>();
+        gun.owned = true;
+
+        Rigidbody body = weapon.GetComponent<Rigidbody>();
+        body.isKinematic = true;
 
         if (gun.type == GunType.Magnum || gun.type == GunType.PlasmaPistol) {
             weapon.transform.SetParent(holster.transform);
@@ -324,6 +363,12 @@ public class SpartanController : MonoBehaviour {
         
 		
     void Update () {
+        Health health = GetComponent<Health>();
+        if (health.dead) {
+            camera.active = false;
+            return;
+        }
+        
         UpdateLook();
 
         MovementState prevMovementState = movementState;
@@ -339,8 +384,6 @@ public class SpartanController : MonoBehaviour {
                 // @NOTE: when we pickup a weapon we havent left the trigger
                 // so we want to manually deactivate the prompt message here
                 pickupTextPrompt.active = false;
-
-                
 
                 if (weapons[0] == null) {
                     weapons[0] = candidateWeapon;
@@ -403,12 +446,20 @@ public class SpartanController : MonoBehaviour {
                 bool wasTriggerHeld = gun.triggerHeld;
                 
                 if (gun.automatic) {
-                    gun.Fire(this.gameObject, gunRay);
+                    
+                    if (gun.Fire(this.gameObject, gunRay, camera.transform.rotation)) {
+                        timeFired = Time.time;
+                        maxRecoil = gun.recoil;
+                    }
+                    
                     gun.triggerHeld = true;
                 }
                 else {
                     if (!wasTriggerHeld) {
-                        gun.Fire(this.gameObject, gunRay);
+                        if (gun.Fire(this.gameObject, gunRay, camera.transform.rotation)) {
+                            timeFired = Time.time;
+                            maxRecoil = gun.recoil;
+                        }
                         gun.triggerHeld = true;
                     }
                 }
@@ -440,14 +491,25 @@ public class SpartanController : MonoBehaviour {
 
         if (characterController.isGrounded) {
             if (movementState == MovementState.Falling) {
-                Health health = GetComponent<Health>();
                 
-                float fallingSpeed = velocity.y;
+                float fallingSpeed = Math.Abs(velocity.y);
 
-                //Debug.Log(fallingSpeed);
+                Debug.Log(fallingSpeed);
 
-                if (fallingSpeed < -50) {
-                    health.DamagePlayer(100, 100, false, 0.0f);
+                if (fallingSpeed > 30) {
+                    float maxFallingSpeed = 50;
+
+                    float diff = maxFallingSpeed - fallingSpeed;
+                    if (diff < 0) {
+                        diff = 0;
+                    }
+
+                    float t = diff / maxFallingSpeed;
+
+                    int shieldDamage = (int)(80 - (80 * t));
+                    int damage = (int)(30 - (30 * t));
+                    
+                    health.DamagePlayer(damage, shieldDamage, false, 0.0f);
                 }
             }
             
@@ -491,7 +553,6 @@ public class SpartanController : MonoBehaviour {
         if (!characterController.isGrounded &&
             movementState != MovementState.Jump && movementState != MovementState.Boost) {
             movementState = MovementState.Falling;
-            heightStartedFall = transform.position.y;
         }
 
         if (movementState == MovementState.OnGround) {
@@ -533,7 +594,6 @@ public class SpartanController : MonoBehaviour {
             // @TODO: this is too small a hop
             if (timeSinceJump >= jumpDuration || !ButtonHeld("Jump", localPlayerNum)) {
                 movementState = MovementState.Falling;
-                heightStartedFall = transform.position.y;
             }
         }
 
@@ -553,7 +613,6 @@ public class SpartanController : MonoBehaviour {
 
             if (timeSinceBoost >= boostDuration) {
                 movementState = MovementState.Falling;
-                heightStartedFall = transform.position.y;
             }            
         }
 
@@ -575,5 +634,13 @@ public class SpartanController : MonoBehaviour {
         //Debug.Log(velocity);
 
         characterController.Move(velocity * Time.deltaTime);
+
+        float timeSinceFired = Time.time - timeFired;
+        float recoilDuration = 0.15f;
+        if (timeSinceFired < recoilDuration) {
+            float t = timeSinceFired / recoilDuration;
+            float currRecoil = Mathf.Lerp(maxRecoil, 0.0f, t);
+            RecoilLook(currRecoil);
+        }
     }
 }

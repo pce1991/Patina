@@ -65,10 +65,13 @@
     <Compile Include="Assets\Source\GameStats.cs" />
     <Compile Include="Assets\Source\Gun.cs" />
     <Compile Include="Assets\Source\Health.cs" />
+    <Compile Include="Assets\Source\HealthPack.cs" />
     <Compile Include="Assets\Source\JumpPad.cs" />
+    <Compile Include="Assets\Source\Projectile.cs" />
     <Compile Include="Assets\Source\Reticule.cs" />
     <Compile Include="Assets\Source\SpartanController.cs" />
     <Compile Include="Assets\Source\SpartanUI.cs" />
+    <Compile Include="Assets\Source\Teleporter.cs" />
     <Compile Include="Assets\Source\WeaponSpawn.cs" />
     <Reference Include="Unity.ProBuilder.AddOns.Editor">
       <HintPath>C:/Users/pce/UnityProjects/Patina/Library/ScriptAssemblies/Unity.ProBuilder.AddOns.Editor.dll</HintPath>

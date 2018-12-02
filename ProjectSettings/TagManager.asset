@@ -10,6 +10,9 @@ TagManager:
   - Head
   - Body
   - WeaponSpawn
+  - Projectile
+  - TeleporterCollider
+  - HealthPack
   layers:
   - Default
   - TransparentFX
@@ -25,7 +28,7 @@ TagManager:
   - Gun
   - GunPickup
   - PlayerHitBox
-  - 
+  - Projectile
   - 
   - 
   - 

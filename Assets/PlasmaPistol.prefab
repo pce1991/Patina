@@ -731,16 +731,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   type: 3
   ammoType: 1
+  projectileType: 0
+  projectilePrefab: {fileID: 0}
+  projectilePoint: {fileID: 0}
   owned: 0
   restRotation: {x: 0, y: 0, z: 90}
   positionOffset: {x: 0, y: 0, z: 0}
-  rotation: {x: -90, y: 0, z: 180}
+  rotation: {x: -90, y: 0, z: 0}
   positionOffsetHolster: {x: 0, y: 0, z: 0}
   rotationHolster: {x: 0, y: 0, z: 0}
   restingRotation: {x: 0, y: 0, z: 0}
   reticule: {fileID: 21300000, guid: ea1073c7b6cfa864cb36c722ae25d1bb, type: 3}
   muzzleFlash: {fileID: 1212456307506300}
   muzzleFlashDuration: 0.05
+  recoil: 0
   maxAmmo: 100
   ammoCount: 100
   clipSize: 100
@@ -749,6 +753,7 @@ MonoBehaviour:
   shieldDamage: 10
   headshotModifier: 0
   range: 100
+  radius: 0
   fireRate: 0.1
   automatic: 0
   triggerHeld: 0

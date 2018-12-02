@@ -1,13 +1,24 @@
+Chargeup plasma pistol and AOE
+Grenades
+FIX GROUPING!!!!!!!!!!!!!
+
+
+
+Probably the worst thing is having to specify rotations of everything which has a model!
+
 TODO:
-     find a better method of making reticules, need to ensure they are centered
+     find a better method of making reticules (krita sucks :( ), need to ensure they are centered
+
+Its sorta weird that doing our boost at the peak of the jump doesnt let you jump as high as boosting early on in your jump (not that that isnt interesting tho).
+    One thing I like about it is you get maximal height by comitting early, whereas if you save it you wont jump as high, but you'll be able to change direction quickly.
+    Not sure why this is happeing tho....
 
 Shield hit effect? I think the way to do this is have a shield mesh, and only render it for a few frames when hit. Really we want to only render part of it probably. And its likely a mostly transparent mesh witha  texture on it.
 
 
-
 Create a game: number of players, map, gametype
 Scoring UI
-Walkup over weapon to pickup ammo (if a weapon has no ammo, destroy it)
+
 
 
 Build levels
@@ -32,6 +43,4 @@ Projectiles
 Gun ammo and reloading
 Weapon modifiers!
 
-
-We have a separate object which has the pickup collider so that the player can collide with that, but not the rigidbody on the gun; They both have the same tag, but are on different layers (gun and gun-pickup).
 

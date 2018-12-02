@@ -13,6 +13,8 @@ public class Health : MonoBehaviour {
     float timeSinceDamaged = 0.0f;
     float shieldRechargeDelay = 2.0f;
 
+    float shieldDamagedTime;
+
     // @NOTE: this is in points perSecond
     float shieldRechargeRate = 35;
 
@@ -23,12 +25,16 @@ public class Health : MonoBehaviour {
         dead = false;
         health = maxHealth;
         shield = maxShield;
+
+        health = 15;
     }
 
     // Use this for initialization
     void Start () {
         if (health > maxHealth) { health = maxHealth; }
         if (shield > maxShield) { shield = maxShield; }
+
+        health = 15;
     }
 
     public float NormalizedShield() {
@@ -39,9 +45,18 @@ public class Health : MonoBehaviour {
         return health / maxHealth;
     }
 
+    public bool RestoreHealth() {
+        if (health < maxHealth) {
+            health = maxHealth;
+            return true;
+        }
+        return false;
+    }
+
     // @GACK: maybe put these in a struct
     public void DamagePlayer(int healthDamage, int shieldDamage, bool headshot, float headshotMultiplier) {
-
+        SpartanController controller = GetComponent<SpartanController>();
+            
         if (shield > 0) {
             if (headshot) {
                 shield -= shieldDamage * headshotMultiplier;
@@ -49,6 +64,8 @@ public class Health : MonoBehaviour {
             else {
                 shield -= shieldDamage;
             }
+
+            shieldDamagedTime = Time.time;
         }
 
         if (shield <= 0) {
@@ -76,10 +93,23 @@ public class Health : MonoBehaviour {
     }
 
     void Update() {
+        SpartanController controller = GetComponent<SpartanController>();
+
         if (timeSinceDamaged > shieldRechargeDelay && shield < maxShield) {
             shield += shieldRechargeRate * Time.deltaTime;
 
             if (shield > maxShield) { shield = maxShield; }
+
+            controller.shieldModel.active = true;
+        }
+        else {
+            float timeSinceShieldDamaged = Time.time - shieldDamagedTime;
+            if (timeSinceShieldDamaged < 0.1f) {
+                controller.shieldModel.active = true;
+            }
+            else {
+                controller.shieldModel.active = false;
+            }
         }
 
         timeSinceDamaged += Time.deltaTime;

@@ -12,6 +12,9 @@ public class SpartanUI : MonoBehaviour {
 
     public GameObject healthBar;
     public GameObject healthMask;
+
+    // @TODO: separate colors!
+    public GameObject heatMask;
     
     public GameObject reticule;
 
@@ -24,6 +27,8 @@ public class SpartanUI : MonoBehaviour {
     float maxShieldMaskWidth;
 
     float maxHealthMaskWidth;
+
+    float maxHeatMaskWidth;
 
 
     // Use this for initialization
@@ -70,6 +75,18 @@ public class SpartanUI : MonoBehaviour {
             float width = screenDim.x * 0.1f; float height = screenDim.y * 0.1f;
             ammoRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
             ammoRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+
+
+            RectTransform heatRect = heatMask.GetComponent<RectTransform>();
+
+            anchoredPosition3D.x = screenDim.x * 0.825f;
+            anchoredPosition3D.y = -screenDim.y * 0.0125f;
+            
+            heatRect.anchoredPosition3D = anchoredPosition3D;
+            
+            maxHeatMaskWidth = heatRect.rect.width;
+
+            heatRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 0);
         }
 
         {
@@ -87,14 +104,15 @@ public class SpartanUI : MonoBehaviour {
     void Update () {
         RectTransform shieldMaskRect = shieldMask.GetComponent<RectTransform>();
         RectTransform healthMaskRect = healthMask.GetComponent<RectTransform>();
+        RectTransform heatMaskRect = heatMask.GetComponent<RectTransform>();
 
         
         Health health = player.GetComponent<Health>();
 
         // @NOTE: we cant modify the width directly, so we do this
         shieldMaskRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, health.NormalizedShield() * maxShieldMaskWidth);
-
         healthMaskRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, health.NormalizedHealth() * maxHealthMaskWidth);
+        
 
         Text text = ammoCount.GetComponent<Text>();
         SpartanController controller = player.GetComponent<SpartanController>();
@@ -103,10 +121,14 @@ public class SpartanUI : MonoBehaviour {
         if (activeGun != null) {
             Gun gun = activeGun.GetComponent<Gun>();
 
-            text.text = string.Format("{0} \\\\\\ {1}", gun.ammoInClip, gun.ammoCount);
-
             if (gun.ammoType == AmmoType.Plasma) {
+                heatMaskRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, gun.GetHeat() * maxHeatMaskWidth);
                 // do a thing with the overheat bar
+                text.text = string.Format("{0} \\\\\\ 0", gun.ammoInClip);
+            }
+            else {
+                heatMaskRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 0);
+                text.text = string.Format("{0} \\\\\\ {1}", gun.ammoInClip, gun.ammoCount);
             }
         }
         else {

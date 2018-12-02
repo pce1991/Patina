@@ -5,8 +5,10 @@ using UnityEngine;
 public class GameStats : MonoBehaviour {
 
     public GameObject playerPrefab;
-    public GameObject startWeapon0;
-    public GameObject startWeapon1;
+
+
+    public GameObject weaponSpawner0;
+    public GameObject weaponSpawner1;
 
     public int startingFragGrenades;
     public int startingPlasmaGrenades;
@@ -16,6 +18,10 @@ public class GameStats : MonoBehaviour {
     
     public int localPlayerCount;
     GameObject[] players;
+
+    // @TODO: maybe what we should do is create a spawner which is in charge of creating weapons and we can
+    // use that instead of specifying start weapons and ammo counts etc in multiple places? Or maybe that's
+    // just as struct like spawndata or something
 
     Transform FindSpawnPoint() {
         GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("Spawn");
@@ -38,9 +44,15 @@ public class GameStats : MonoBehaviour {
         return bestSpawn.transform;
     }
 
+    WeaponSpawn wpnSpawner0;
+    WeaponSpawn wpnSpawner1;
+    
     // Use this for initialization
     void Start () {
         // @TODO: really what we want to do is create the players rather than find them in the scene!!!
+
+        wpnSpawner0 = weaponSpawner0.GetComponent<WeaponSpawn>();
+        wpnSpawner1 = weaponSpawner1.GetComponent<WeaponSpawn>();
 
         players = new GameObject[localPlayerCount];
 
@@ -53,6 +65,13 @@ public class GameStats : MonoBehaviour {
             
         foreach (GameObject player in players) {
             SpartanController controller = player.GetComponent<SpartanController>();
+
+            Transform bestSpawn = FindSpawnPoint();
+            
+            wpnSpawner0.SpawnWeapon();
+            wpnSpawner1.SpawnWeapon();
+            controller.SpawnSpartan(bestSpawn.position, bestSpawn.rotation, wpnSpawner0.lastWeaponSpawned, wpnSpawner1.lastWeaponSpawned);
+            
             Camera cam = controller.camera.GetComponent<Camera>();
 
             SpartanUI ui = controller.canvas.GetComponent<SpartanUI>();
@@ -115,7 +134,9 @@ public class GameStats : MonoBehaviour {
                 Transform bestSpawn = FindSpawnPoint();
                 // @TODO: find a spawn point!!!!
                 if (timeSinceDied >= respawnRate) {
-                    controller.SpawnSpartan(bestSpawn.position, bestSpawn.rotation, null, null);
+                    wpnSpawner0.SpawnWeapon();
+                    wpnSpawner1.SpawnWeapon();                    
+                    controller.SpawnSpartan(bestSpawn.position, bestSpawn.rotation, wpnSpawner0.lastWeaponSpawned, wpnSpawner1.lastWeaponSpawned);
                 }
             }
         }
